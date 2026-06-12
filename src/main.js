@@ -1,4 +1,6 @@
-import { initBoard, clearBoardLayers, setGridVisible } from './board.js';
+import {
+  initBoard, clearBoardLayers, resetCamera, setGridVisible,
+} from './board.js';
 import { renderCanals, rebuildWaterNetwork } from './canal.js';
 import { initInput } from './input.js';
 import {
@@ -10,6 +12,8 @@ import {
 } from './ui.js';
 import { initProgression, updateProgression } from './progression.js';
 import { updateMusicMood } from './audio.js';
+import { updateBlockers } from './stations.js';
+import { createWeather, updateWeather } from './weather.js';
 
 let lastTime = 0;
 let accumulator = 0;
@@ -18,6 +22,8 @@ const fixedStepMs = 1000 / 60;
 const buildScene = () => {
   clearBoardLayers();
   createInitialScene();
+  createWeather();
+  resetCamera();
   initProgression();
   rebuildWaterNetwork({ springs, reservoirs });
   renderCanals();
@@ -47,6 +53,8 @@ const update = () => {
   if (!state.running || state.paused) return;
 
   state.tick++;
+  updateWeather();
+  updateBlockers();
 
   rebuildWaterNetwork({ springs, reservoirs });
   reservoirs.forEach((reservoir) => reservoir.update());
@@ -79,7 +87,12 @@ const frame = (time) => {
 };
 
 initBoard();
-initUi({ startGame, restartGame, togglePause });
+initUi({
+  startGame,
+  restartGame,
+  togglePause,
+  resetView: resetCamera,
+});
 initInput();
 resetState();
 buildScene();

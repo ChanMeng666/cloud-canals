@@ -1,9 +1,11 @@
+export const maxCanalStock = 120;
+
 export const state = {
   running: false,
   paused: false,
   tick: 0,
   score: 0,
-  canalStock: 22,
+  canalStock: 34,
   deleteMode: false,
   gridLocked: localStorage.getItem('CloudCanalsGrid') === 'true',
   soundOn: localStorage.getItem('CloudCanalsSound') !== 'false',
@@ -23,13 +25,14 @@ export const springs = [];
 export const fields = [];
 export const reservoirs = [];
 export const blockers = [];
+export const decorClouds = [];
 
 export const resetState = () => {
   state.running = false;
   state.paused = false;
   state.tick = 0;
   state.score = 0;
-  state.canalStock = 22;
+  state.canalStock = 34;
   state.deleteMode = false;
   state.nextSpawnTick = 1200;
   state.season = 1;
@@ -43,4 +46,5 @@ export const resetState = () => {
   fields.length = 0;
   reservoirs.length = 0;
   blockers.length = 0;
+  decorClouds.length = 0;
 };

@@ -1,14 +1,31 @@
 import {
-  boardHeight, boardWidth, cellKey,
+  boardHeight, boardWidth, cellKey, isInsideBoard,
 } from './board.js';
 import { addCanal, isCanalCell } from './canal.js';
 import {
   Blocker, Field, Reservoir, Spring, areaIsFree, isBlockedCell,
 } from './stations.js';
-import { fields, reservoirs, state } from './state.js';
+import {
+  blockers, canals, fields, maxCanalStock, reservoirs, springs, state,
+} from './state.js';
 import { showToast } from './ui.js';
 
 const randomInt = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
+
+const allCellsInArea = ({ x, y, width, height }) => {
+  const cells = [];
+  for (let cx = x; cx < x + width; cx++) {
+    for (let cy = y; cy < y + height; cy++) cells.push({ x: cx, y: cy });
+  }
+  return cells;
+};
+
+const neighborsOf = (cell) => [
+  { x: cell.x + 1, y: cell.y },
+  { x: cell.x - 1, y: cell.y },
+  { x: cell.x, y: cell.y + 1 },
+  { x: cell.x, y: cell.y - 1 },
+];
 
 const connectorCandidates = ({ x, y, width, height }) => [
   { x: x - 1, y: y + Math.floor(height / 2) },
@@ -29,12 +46,69 @@ const chooseConnector = (area) => connectorCandidates(area)
   .sort(() => Math.random() - 0.5)[0];
 
 const canalTouchesArea = ({ x, y, width, height }, connectors = []) => {
-  const cells = [];
-  for (let cx = x; cx < x + width; cx++) {
-    for (let cy = y; cy < y + height; cy++) cells.push({ x: cx, y: cy });
-  }
+  const cells = allCellsInArea({ x, y, width, height });
   return [...cells, ...connectors].some(isCanalCell);
 };
+
+const networkKeys = () => {
+  const keys = new Set();
+  springs.forEach((spring) => spring.connectors.forEach((connector) => keys.add(cellKey(connector))));
+  canals.forEach((segment) => {
+    keys.add(cellKey(segment.a));
+    keys.add(cellKey(segment.b));
+  });
+  return keys;
+};
+
+const canReachNetwork = (start, futureBlockedKeys = new Set()) => {
+  const targets = networkKeys();
+  if (!targets.size) return true;
+
+  const queue = [start];
+  const visited = new Set();
+
+  while (queue.length) {
+    const cell = queue.shift();
+    const key = cellKey(cell);
+    if (visited.has(key)) continue;
+    visited.add(key);
+    if (!isInsideBoard(cell)) continue;
+    if (futureBlockedKeys.has(key) || isBlockedCell(cell)) continue;
+    if (targets.has(key)) return true;
+    neighborsOf(cell).forEach((next) => {
+      const nextKey = cellKey(next);
+      if (!visited.has(nextKey)) queue.push(next);
+    });
+  }
+
+  return false;
+};
+
+const importantAccessKeys = () => {
+  const keys = networkKeys();
+  fields.forEach((field) => field.connectors.forEach((connector) => keys.add(cellKey(connector))));
+  reservoirs.forEach((reservoir) => reservoir.connectors.forEach((connector) => keys.add(cellKey(connector))));
+  return keys;
+};
+
+const hasAccessConflict = (area) => {
+  const important = importantAccessKeys();
+  return allCellsInArea(area).some((cell) => {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        if (Math.abs(dx) + Math.abs(dy) > 1) continue;
+        if (important.has(cellKey({ x: cell.x + dx, y: cell.y + dy }))) return true;
+      }
+    }
+    return false;
+  });
+};
+
+const keepsStationsReachable = (futureBlockedKeys) => (
+  [...fields, ...reservoirs].every((station) => (
+    station.connectors.some((connector) => canReachNetwork(connector, futureBlockedKeys))
+  ))
+);
 
 const findFreeArea = ({
   width,
@@ -53,17 +127,20 @@ const findFreeArea = ({
     if (!connector) continue;
     if (!areaIsFree({ ...area, connectors: [connector] })) continue;
     if (canalTouchesArea(area, [connector])) continue;
+    if (!canReachNetwork(connector, new Set(allCellsInArea(area).map(cellKey)))) continue;
     return { ...area, connectors: [connector] };
   }
   return null;
 };
 
 const spawnBlocker = () => {
-  const rock = Math.random() > 0.55;
+  if (blockers.length > 20) return false;
+
+  const rock = Math.random() > 0.72;
   const width = rock ? 1 : randomInt(1, 2);
   const height = rock ? 1 : randomInt(1, 2);
 
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 70; i++) {
     const area = {
       x: randomInt(1, boardWidth - width - 2),
       y: randomInt(1, boardHeight - height - 2),
@@ -73,7 +150,14 @@ const spawnBlocker = () => {
     };
     if (!areaIsFree(area)) continue;
     if (canalTouchesArea(area)) continue;
-    new Blocker({ ...area, type: rock ? 'rock' : 'cloud' });
+    if (hasAccessConflict(area)) continue;
+    const futureBlockedKeys = new Set(allCellsInArea(area).map(cellKey));
+    if (!keepsStationsReachable(futureBlockedKeys)) continue;
+    new Blocker({
+      ...area,
+      type: rock ? 'rock' : 'mist',
+      ttl: rock ? undefined : 1400 + Math.floor(Math.random() * 900),
+    });
     return true;
   }
   return false;
@@ -81,30 +165,32 @@ const spawnBlocker = () => {
 
 export const createInitialScene = () => {
   new Spring({
-    x: 3,
-    y: 7,
-    connectors: [{ x: 5, y: 8 }],
+    x: 4,
+    y: 12,
+    connectors: [{ x: 6, y: 13 }],
   });
 
-  addCanal({ x: 5, y: 8 }, { x: 6, y: 8 });
+  addCanal({ x: 6, y: 13 }, { x: 7, y: 13 });
+  addCanal({ x: 7, y: 13 }, { x: 8, y: 13 });
 
   new Field({
-    x: 11,
-    y: 5,
-    connectors: [{ x: 10, y: 6 }],
+    x: 14,
+    y: 9,
+    connectors: [{ x: 13, y: 10 }],
   });
 
   new Field({
-    x: 18,
-    y: 10,
-    connectors: [{ x: 17, y: 11 }],
+    x: 26,
+    y: 16,
+    connectors: [{ x: 25, y: 17 }],
   });
 
   [
-    { x: 8, y: 3, width: 2, height: 1, type: 'cloud' },
-    { x: 14, y: 8, width: 1, height: 1, type: 'rock' },
-    { x: 22, y: 6, width: 2, height: 2, type: 'cloud' },
-    { x: 6, y: 12, width: 1, height: 1, type: 'rock' },
+    { x: 10, y: 7, width: 2, height: 1, type: 'mist', ttl: 1800 },
+    { x: 19, y: 12, width: 1, height: 1, type: 'rock' },
+    { x: 32, y: 8, width: 2, height: 2, type: 'mist', ttl: 2200 },
+    { x: 8, y: 19, width: 1, height: 1, type: 'rock' },
+    { x: 36, y: 18, width: 2, height: 1, type: 'mist', ttl: 1900 },
   ].forEach((blocker) => new Blocker(blocker));
 };
 
@@ -112,7 +198,8 @@ export const spawnField = () => {
   const area = findFreeArea({
     width: 3,
     height: 2,
-    attempts: 80,
+    attempts: 110,
+    margin: 2,
   });
   if (!area) return false;
   new Field(area);
@@ -123,7 +210,8 @@ export const spawnReservoir = () => {
   const area = findFreeArea({
     width: 2,
     height: 2,
-    attempts: 80,
+    attempts: 110,
+    margin: 2,
   });
   if (!area) return false;
   new Reservoir(area);
@@ -141,12 +229,12 @@ export const updateSpawning = () => {
   );
 
   if (spawned) {
-    state.canalStock = Math.min(80, state.canalStock + 7);
-    showToast(`${spawnReservoirNext ? 'New reservoir' : 'New field'} appeared. Canals +7`);
+    state.canalStock = Math.min(maxCanalStock, state.canalStock + 8);
+    showToast(`${spawnReservoirNext ? 'New reservoir' : 'New field'} appeared. Canals +8`);
     if (Math.random() > 0.35) spawnBlocker();
   }
 
-  state.nextSpawnTick = state.tick + 1100 + Math.floor(Math.random() * 700);
+  state.nextSpawnTick = state.tick + 1200 + Math.floor(Math.random() * 760);
 };
 
 export const occupiedKeys = () => {

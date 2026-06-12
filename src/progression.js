@@ -1,5 +1,5 @@
 import {
-  fields, reservoirs, state,
+  fields, maxCanalStock, reservoirs, state,
 } from './state.js';
 import { hasWaterAt } from './canal.js';
 import { sounds } from './audio.js';
@@ -75,16 +75,16 @@ const objectiveProgress = () => {
 
 const applyReward = () => {
   if (state.objective.type === 'harvest') {
-    state.canalStock = Math.min(99, state.canalStock + 5);
+    state.canalStock = Math.min(maxCanalStock, state.canalStock + 5);
   } else if (state.objective.type === 'water') {
     fields.forEach((field) => {
       field.moisture = Math.min(100, field.moisture + 12);
     });
   } else if (state.objective.type === 'connected') {
     state.score += 2;
-    state.canalStock = Math.min(99, state.canalStock + 4);
+    state.canalStock = Math.min(maxCanalStock, state.canalStock + 4);
   } else if (state.objective.type === 'reservoir') {
-    state.canalStock = Math.min(99, state.canalStock + 8);
+    state.canalStock = Math.min(maxCanalStock, state.canalStock + 8);
     reservoirs.forEach((reservoir) => {
       reservoir.storage = Math.min(100, reservoir.storage + 12);
     });

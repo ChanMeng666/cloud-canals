@@ -3,8 +3,8 @@ import { colors } from './colors.js';
 import { addSvgImage, assets } from './assets.js';
 
 export const cellSize = 18;
-export const boardWidth = 28;
-export const boardHeight = 16;
+export const boardWidth = 44;
+export const boardHeight = 26;
 export const svgWidth = boardWidth * cellSize;
 export const svgHeight = boardHeight * cellSize;
 
@@ -13,6 +13,7 @@ export const svg = createSvgElement();
 
 export const layers = {
   terrain: createSvgElement('g'),
+  sky: createSvgElement('g'),
   shadow: createSvgElement('g'),
   canal: createSvgElement('g'),
   water: createSvgElement('g'),
@@ -20,6 +21,77 @@ export const layers = {
   marker: createSvgElement('g'),
   pointer: createSvgElement('rect'),
   grid: createSvgElement('rect'),
+};
+
+export const camera = {
+  x: 0,
+  y: 0,
+  zoom: 1.22,
+  minZoom: 1,
+  maxZoom: 2.45,
+};
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+export const getCameraViewBox = () => ({
+  x: camera.x,
+  y: camera.y,
+  width: svgWidth / camera.zoom,
+  height: svgHeight / camera.zoom,
+});
+
+export const applyCamera = () => {
+  const width = svgWidth / camera.zoom;
+  const height = svgHeight / camera.zoom;
+
+  camera.x = width >= svgWidth
+    ? (svgWidth - width) / 2
+    : clamp(camera.x, 0, svgWidth - width);
+  camera.y = height >= svgHeight
+    ? (svgHeight - height) / 2
+    : clamp(camera.y, 0, svgHeight - height);
+
+  svg.setAttribute('viewBox', `${camera.x} ${camera.y} ${width} ${height}`);
+};
+
+export const focusCell = (cell, zoom = camera.zoom) => {
+  camera.zoom = clamp(zoom, camera.minZoom, camera.maxZoom);
+  const width = svgWidth / camera.zoom;
+  const height = svgHeight / camera.zoom;
+  const center = cellCenter(cell);
+  camera.x = center.x - width / 2;
+  camera.y = center.y - height / 2;
+  applyCamera();
+};
+
+export const resetCamera = () => {
+  focusCell({ x: 7, y: 12 }, 1.22);
+};
+
+export const panCameraByScreenDelta = (dx, dy) => {
+  const rect = layers.pointer.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const viewBox = getCameraViewBox();
+  camera.x -= dx * (viewBox.width / rect.width);
+  camera.y -= dy * (viewBox.height / rect.height);
+  applyCamera();
+};
+
+export const zoomCameraAt = (clientX, clientY, factor) => {
+  const rect = layers.pointer.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const before = getCameraViewBox();
+  const localX = clamp((clientX - rect.left) / rect.width, 0, 1);
+  const localY = clamp((clientY - rect.top) / rect.height, 0, 1);
+  const anchorX = before.x + localX * before.width;
+  const anchorY = before.y + localY * before.height;
+
+  camera.zoom = clamp(camera.zoom * factor, camera.minZoom, camera.maxZoom);
+  const after = getCameraViewBox();
+  camera.x = anchorX - localX * after.width;
+  camera.y = anchorY - localY * after.height;
+  applyCamera();
 };
 
 export const initBoard = () => {
@@ -74,7 +146,6 @@ export const initBoard = () => {
   `;
   document.body.append(stage);
 
-  svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   svg.style.cssText = `
     width: min(100vw, ${boardWidth / boardHeight * 100}vh);
@@ -138,6 +209,7 @@ export const initBoard = () => {
 
   svg.append(
     layers.terrain,
+    layers.sky,
     layers.grid,
     layers.shadow,
     layers.canal,
@@ -146,9 +218,11 @@ export const initBoard = () => {
     layers.marker,
     layers.pointer,
   );
+  resetCamera();
 };
 
 export const clearBoardLayers = () => {
+  layers.sky.innerHTML = '';
   layers.shadow.innerHTML = '';
   layers.canal.innerHTML = '';
   layers.water.innerHTML = '';
@@ -169,12 +243,11 @@ export const isInsideBoard = ({ x, y }) => (
 
 export const eventToCell = (event) => {
   const rect = layers.pointer.getBoundingClientRect();
-  const scaleX = svgWidth / rect.width;
-  const scaleY = svgHeight / rect.height;
+  const viewBox = getCameraViewBox();
 
   return {
-    x: Math.floor((event.clientX - rect.left) * scaleX / cellSize),
-    y: Math.floor((event.clientY - rect.top) * scaleY / cellSize),
+    x: Math.floor((viewBox.x + (event.clientX - rect.left) * (viewBox.width / rect.width)) / cellSize),
+    y: Math.floor((viewBox.y + (event.clientY - rect.top) * (viewBox.height / rect.height)) / cellSize),
   };
 };
 

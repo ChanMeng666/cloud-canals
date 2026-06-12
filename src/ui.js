@@ -22,6 +22,7 @@ const bestValue = createElement();
 const warning = createElement();
 
 let pauseButton;
+let viewButton;
 let gridButton;
 let deleteButton;
 let soundButton;
@@ -33,6 +34,7 @@ const iconPaths = {
   pause: ['M7 5v10M13 5v10'],
   play: ['M7 5l8 5-8 5z'],
   grid: ['M5 4v12M11 4v12M4 7h12M4 13h12'],
+  view: ['M11 5v12M5 11h12', 'M7 7l4-3 4 3M7 15l4 3 4-3'],
   delete: ['M6 6l8 8M14 6l-8 8', 'M5 4h10M8 4l1-2h2l1 2M6 7v9h8V7'],
   sound: ['M4 10h3l4-4v12l-4-4H4z', 'M14 8q2 2 0 4'],
   mute: ['M4 10h3l4-4v12l-4-4H4z', 'M15 8l4 4M19 8l-4 4'],
@@ -172,7 +174,12 @@ export const showToast = (message, urgent = false) => {
   }, urgent ? 1200 : 1700);
 };
 
-export const initUi = ({ startGame, restartGame, togglePause }) => {
+export const initUi = ({
+  startGame,
+  restartGame,
+  togglePause,
+  resetView,
+}) => {
   shell.style.cssText = `
     position:absolute;
     inset:0;
@@ -296,18 +303,20 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
   const toolbar = createElement();
   toolbar.style.cssText = `
     position:absolute;
-    left:50%;
-    bottom:18px;
-    translate:-50% 0;
-    display:flex;
+    right:16px;
+    top:50%;
+    translate:0 -50%;
+    display:grid;
     align-items:center;
     gap:8px;
     padding:8px;
-    border-radius:999px;
+    border-radius:28px;
     background:#fffdf0d9;
     backdrop-filter:var(--ui-blur);
     box-shadow:0 20px 46px #24444b26, 0 0 0 1px #24444b18;
     pointer-events:auto;
+    opacity:0;
+    transition:opacity .35s;
   `;
 
   pauseButton = makeToolButton('Pause', 'pause', () => {
@@ -315,6 +324,13 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
     togglePause();
     sounds.toggle();
     showToast(state.paused ? 'Paused' : 'Water is flowing');
+  });
+
+  viewButton = makeToolButton('Reset view', 'view', () => {
+    initAudio();
+    resetView();
+    sounds.toggle();
+    showToast('View centered');
   });
 
   gridButton = makeToolButton('Grid', 'grid', () => {
@@ -341,7 +357,7 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
     updateUi();
   });
 
-  toolbar.append(pauseButton, gridButton, deleteButton, soundButton);
+  toolbar.append(pauseButton, viewButton, gridButton, deleteButton, soundButton);
 
   warning.style.cssText = `
     position:absolute;
@@ -462,6 +478,12 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
       }
       [data-ui-toolbar] {
         bottom: 12px !important;
+        left: 50% !important;
+        right: auto !important;
+        top: auto !important;
+        translate: -50% 0 !important;
+        display: flex !important;
+        border-radius: 999px !important;
       }
       [data-ui-menu] {
         align-items: flex-start !important;
@@ -484,12 +506,14 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
 
   shell.append(stats, objectivePanel, toolbar, warning, menu);
   shell.objectivePanel = objectivePanel;
+  shell.toolbar = toolbar;
   updateUi();
 };
 
 export const showMenu = () => {
   menu.style.opacity = 1;
   menu.style.pointerEvents = 'auto';
+  if (shell.toolbar) shell.toolbar.style.opacity = 0;
 };
 
 export const hideMenu = () => {
@@ -497,6 +521,7 @@ export const hideMenu = () => {
   menu.style.pointerEvents = 'none';
   stats.style.opacity = 1;
   if (shell.objectivePanel) shell.objectivePanel.style.opacity = 1;
+  if (shell.toolbar) shell.toolbar.style.opacity = 1;
 };
 
 export const updateUi = (noCanals = false) => {
@@ -520,6 +545,7 @@ export const updateUi = (noCanals = false) => {
   bestValue.textContent = `Reward: ${objective.reward ?? 'New goal soon'} | Best ${state.bestScore} harvests, season ${state.bestSeason}`;
 
   if (pauseButton) setButtonIcon(pauseButton, state.paused ? 'play' : 'pause', state.paused ? 'Resume' : 'Pause');
+  if (viewButton) viewButton.style.background = '#fffdf0e8';
   if (gridButton) {
     gridButton.style.background = state.gridLocked ? '#e7f7fb' : '#fffdf0e8';
   }

@@ -345,13 +345,17 @@ export class Blocker {
     y,
     width = 1,
     height = 1,
-    type = 'cloud',
+    type = 'mist',
+    ttl,
   }) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
-    this.type = type;
+    this.type = type === 'cloud' ? 'mist' : type;
+    this.age = 0;
+    this.ttl = this.type === 'rock' ? Infinity : (ttl ?? 1500 + Math.floor(Math.random() * 900));
+    this.driftPhase = Math.random() * Math.PI * 2;
     this.cells = allCellsInArea(this);
     blockers.push(this);
     this.addToSvg();
@@ -359,6 +363,9 @@ export class Blocker {
 
   addToSvg() {
     const group = createSvgElement('g');
+    group.style.pointerEvents = 'none';
+    group.style.transition = 'opacity .35s';
+    this.group = group;
     layers.station.append(group);
 
     if (this.type === 'rock') {
@@ -374,11 +381,11 @@ export class Blocker {
 
     const href = Math.random() > 0.5 ? assets.cloudBank : assets.cloudBankAlt;
     addSvgImage(group, href, {
-      x: this.x * cellSize - 12,
-      y: this.y * cellSize - 10,
-      width: this.width * cellSize + 24,
-      height: this.height * cellSize + 20,
-      opacity: 0.95,
+      x: this.x * cellSize - 5,
+      y: this.y * cellSize - 6,
+      width: this.width * cellSize + 10,
+      height: this.height * cellSize + 12,
+      opacity: 0.78,
     });
 
     this.cells.forEach((cell, index) => {
@@ -391,12 +398,33 @@ export class Blocker {
         rx: 9,
         ry: 4,
         fill: colors.cloud,
-        opacity: 0.25,
+        opacity: 0.18,
       });
       group.append(mist);
     });
   }
+
+  remove() {
+    this.group?.remove();
+    const index = blockers.indexOf(this);
+    if (index >= 0) blockers.splice(index, 1);
+  }
+
+  update() {
+    if (this.type === 'rock') return;
+    this.age++;
+    const life = this.age / this.ttl;
+    const bobX = Math.sin(this.age / 90 + this.driftPhase) * 2.4;
+    const bobY = Math.cos(this.age / 120 + this.driftPhase) * 1.2;
+    this.group.style.transform = `translate(${bobX}px, ${bobY}px)`;
+    this.group.style.opacity = Math.max(0, Math.min(1, 1 - Math.max(0, life - 0.72) / 0.28));
+    if (this.age >= this.ttl) this.remove();
+  }
 }
+
+export const updateBlockers = () => {
+  for (let i = blockers.length - 1; i >= 0; i--) blockers[i].update();
+};
 
 export const isBlockedCell = (cell) => {
   if (!isInsideBoard(cell)) return true;
