@@ -1,11 +1,13 @@
 import { cellCenter, cellKey, cellSize, isInsideBoard, layers } from './board.js';
 import { colors } from './colors.js';
 import { createSvgElement } from './dom.js';
+import { addSvgImage, assets } from './assets.js';
 import {
   blockers, fields, reservoirs, springs, state, stations,
 } from './state.js';
 import { hasWaterAt } from './canal.js';
 import { sounds } from './audio.js';
+import { recordHarvest } from './progression.js';
 
 const allCellsInArea = ({ x, y, width, height }) => {
   const cells = [];
@@ -114,6 +116,14 @@ export class Spring extends Station {
       x: (this.x + 1) * cellSize,
       y: (this.y + 1) * cellSize,
     };
+    this.glow = addSvgImage(this.group, assets.springGlow, {
+      x: this.x * cellSize - 18,
+      y: this.y * cellSize - 18,
+      width: this.width * cellSize + 36,
+      height: this.height * cellSize + 36,
+      opacity: 0.92,
+    });
+    this.glow.style.mixBlendMode = 'screen';
     const swirl = createSvgElement('path');
     setAttrs(swirl, {
       d: `M${center.x - 11} ${center.y}Q${center.x} ${center.y - 13} ${center.x + 11} ${center.y}Q${center.x} ${center.y + 13} ${center.x - 9} ${center.y + 4}`,
@@ -170,6 +180,14 @@ export class Field extends Station {
       opacity: 0.65,
     });
     this.group.append(this.crop);
+
+    addSvgImage(this.group, assets.fieldOverlay, {
+      x: this.x * cellSize,
+      y: this.y * cellSize,
+      width: this.width * cellSize,
+      height: this.height * cellSize,
+      opacity: 0.9,
+    });
 
     const meterX = this.x * cellSize + 6;
     const meterY = this.y * cellSize + this.height * cellSize - 7;
@@ -230,6 +248,7 @@ export class Field extends Station {
       this.growth = 16;
       this.moisture = Math.max(12, this.moisture - 18);
       state.score++;
+      recordHarvest();
       this.flashHarvest();
       sounds.harvest();
     }
@@ -252,9 +271,23 @@ export class Field extends Station {
     this.group.style.transition = 'transform .2s';
     this.group.style.transform = 'scale(1.04)';
     this.group.style.transformOrigin = `${(this.x + 1.5) * cellSize}px ${(this.y + 1) * cellSize}px`;
+    const sparkle = addSvgImage(layers.marker, assets.harvestSparkle, {
+      x: this.x * cellSize + 8,
+      y: this.y * cellSize - 18,
+      width: 34,
+      height: 34,
+      opacity: 0,
+    });
+    sparkle.style.transition = 'opacity .18s, transform .6s';
+    sparkle.style.transformOrigin = `${this.x * cellSize + 25}px ${this.y * cellSize}px`;
+    requestAnimationFrame(() => {
+      sparkle.style.opacity = 1;
+      sparkle.style.transform = 'translateY(-10px) scale(1.15)';
+    });
     setTimeout(() => {
       this.group.style.transform = 'scale(1)';
     }, 180);
+    setTimeout(() => sparkle.remove(), 700);
   }
 }
 
@@ -274,6 +307,13 @@ export class Reservoir extends Station {
   }
 
   addDetail() {
+    addSvgImage(this.group, assets.reservoirBody, {
+      x: this.x * cellSize - 2,
+      y: this.y * cellSize - 2,
+      width: this.width * cellSize + 4,
+      height: this.height * cellSize + 4,
+      opacity: 0.9,
+    });
     this.water = createSvgElement('rect');
     this.water.style.transition = 'height .25s, y .25s, opacity .25s';
     setAttrs(this.water, {
@@ -322,32 +362,38 @@ export class Blocker {
     layers.station.append(group);
 
     if (this.type === 'rock') {
-      const rect = createSvgElement('rect');
-      setAttrs(rect, {
-        x: this.x * cellSize + 4,
-        y: this.y * cellSize + 4,
-        width: this.width * cellSize - 8,
-        height: this.height * cellSize - 8,
-        rx: 6,
-        fill: colors.rock,
-        opacity: 0.82,
+      addSvgImage(group, assets.rock, {
+        x: this.x * cellSize - 3,
+        y: this.y * cellSize - 5,
+        width: this.width * cellSize + 10,
+        height: this.height * cellSize + 10,
+        opacity: 0.95,
       });
-      group.append(rect);
       return;
     }
 
+    const href = Math.random() > 0.5 ? assets.cloudBank : assets.cloudBankAlt;
+    addSvgImage(group, href, {
+      x: this.x * cellSize - 12,
+      y: this.y * cellSize - 10,
+      width: this.width * cellSize + 24,
+      height: this.height * cellSize + 20,
+      opacity: 0.95,
+    });
+
     this.cells.forEach((cell, index) => {
+      if (index % 2) return;
       const center = cellCenter(cell);
-      const cloud = createSvgElement('ellipse');
-      setAttrs(cloud, {
-        cx: center.x + (index % 2 ? 4 : -3),
-        cy: center.y,
-        rx: 9 + Math.random() * 4,
-        ry: 6 + Math.random() * 3,
+      const mist = createSvgElement('ellipse');
+      setAttrs(mist, {
+        cx: center.x + 2,
+        cy: center.y + 2,
+        rx: 9,
+        ry: 4,
         fill: colors.cloud,
-        opacity: 0.88,
+        opacity: 0.25,
       });
-      group.append(cloud);
+      group.append(mist);
     });
   }
 }

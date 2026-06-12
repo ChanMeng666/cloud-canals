@@ -8,6 +8,13 @@ export const state = {
   gridLocked: localStorage.getItem('CloudCanalsGrid') === 'true',
   soundOn: localStorage.getItem('CloudCanalsSound') !== 'false',
   nextSpawnTick: 1200,
+  season: 1,
+  seasonTick: 0,
+  objective: null,
+  objectiveCompleted: false,
+  harvestsThisSeason: 0,
+  bestScore: Number(localStorage.getItem('CloudCanalsBestScore') ?? 0),
+  bestSeason: Number(localStorage.getItem('CloudCanalsBestSeason') ?? 1),
 };
 
 export const canals = [];
@@ -25,6 +32,11 @@ export const resetState = () => {
   state.canalStock = 22;
   state.deleteMode = false;
   state.nextSpawnTick = 1200;
+  state.season = 1;
+  state.seasonTick = 0;
+  state.objective = null;
+  state.objectiveCompleted = false;
+  state.harvestsThisSeason = 0;
   canals.length = 0;
   stations.length = 0;
   springs.length = 0;

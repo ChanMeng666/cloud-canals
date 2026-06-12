@@ -6,8 +6,10 @@ import {
 } from './state.js';
 import { createInitialScene, updateSpawning } from './spawning.js';
 import {
-  hideMenu, initUi, showMenu, updateUi,
+  hideMenu, initUi, showMenu, showToast, updateUi,
 } from './ui.js';
+import { initProgression, updateProgression } from './progression.js';
+import { updateMusicMood } from './audio.js';
 
 let lastTime = 0;
 let accumulator = 0;
@@ -16,6 +18,7 @@ const fixedStepMs = 1000 / 60;
 const buildScene = () => {
   clearBoardLayers();
   createInitialScene();
+  initProgression();
   rebuildWaterNetwork({ springs, reservoirs });
   renderCanals();
   updateUi();
@@ -49,6 +52,12 @@ const update = () => {
   reservoirs.forEach((reservoir) => reservoir.update());
   rebuildWaterNetwork({ springs, reservoirs });
   fields.forEach((field) => field.update());
+  updateProgression().forEach((message) => showToast(message));
+
+  const averageWater = fields.length
+    ? fields.reduce((sum, field) => sum + field.moisture, 0) / fields.length
+    : 0;
+  updateMusicMood(averageWater);
 
   if (state.tick % 12 === 0) renderCanals();
   if (state.tick % 20 === 0) updateUi();

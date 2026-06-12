@@ -1,5 +1,6 @@
 import { createElement, createSvgElement } from './dom.js';
 import { colors } from './colors.js';
+import { addSvgImage, assets } from './assets.js';
 
 export const cellSize = 18;
 export const boardWidth = 28;
@@ -111,6 +112,14 @@ export const initBoard = () => {
   island.setAttribute('stroke', colors.islandEdge);
   island.setAttribute('stroke-width', 5);
   layers.terrain.append(island);
+
+  addSvgImage(layers.terrain, assets.islandTexture, {
+    x: 0,
+    y: 0,
+    width: svgWidth,
+    height: svgHeight,
+    opacity: 0.85,
+  });
 
   layers.grid.setAttribute('width', svgWidth);
   layers.grid.setAttribute('height', svgHeight);

@@ -1,6 +1,7 @@
 import {
-  eventToCell, isInsideBoard, layers, setGridVisible,
+  cellCenter, eventToCell, isInsideBoard, layers, setGridVisible,
 } from './board.js';
+import { createSvgElement } from './dom.js';
 import {
   addCanal, getCanalAt, removeCanalsTouching, renderCanals,
 } from './canal.js';
@@ -8,9 +9,11 @@ import { isBlockedCell } from './stations.js';
 import { state } from './state.js';
 import { sounds } from './audio.js';
 import { showToast, updateUi } from './ui.js';
+import { colors } from './colors.js';
 
 let dragging = false;
 let lastCell = null;
+const previewPath = createSvgElement('path');
 
 const isNeighbor = (a, b) => (
   Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1
@@ -20,6 +23,28 @@ const canBuildCell = (cell) => isInsideBoard(cell) && !isBlockedCell(cell);
 
 const setCursorForCell = (cell) => {
   layers.pointer.style.cursor = canBuildCell(cell) ? 'cell' : 'not-allowed';
+};
+
+const hidePreview = () => {
+  previewPath.style.opacity = 0;
+};
+
+const ensurePreview = () => {
+  if (!previewPath.parentNode) layers.marker.append(previewPath);
+};
+
+const updatePreview = (from, to) => {
+  ensurePreview();
+  if (!from || !to || !isNeighbor(from, to)) {
+    hidePreview();
+    return;
+  }
+  const start = cellCenter(from);
+  const end = cellCenter(to);
+  const valid = canBuildCell(from) && canBuildCell(to) && !getCanalAt(from, to) && state.canalStock > 0;
+  previewPath.setAttribute('d', `M${start.x} ${start.y}L${end.x} ${end.y}`);
+  previewPath.setAttribute('stroke', valid ? colors.canalWet : colors.warning);
+  previewPath.style.opacity = 0.95;
 };
 
 const deleteAt = (cell) => {
@@ -58,11 +83,13 @@ const handlePointerDown = (event) => {
 
   if (event.button === 2 || state.deleteMode) {
     setGridVisible(true);
+    hidePreview();
     deleteAt(cell);
     return;
   }
 
   if (!canBuildCell(cell)) {
+    sounds.invalid();
     showToast('Canals cannot be built here', true);
     return;
   }
@@ -85,6 +112,8 @@ const handlePointerMove = (event) => {
 
   if (!dragging || event.buttons !== 1 || !lastCell) return;
 
+  updatePreview(lastCell, cell);
+
   if (buildBetween(lastCell, cell)) {
     lastCell = cell;
   } else if (isNeighbor(lastCell, cell) && getCanalAt(lastCell, cell)) {
@@ -97,10 +126,18 @@ const handlePointerUp = (event) => {
   event.preventDefault();
   dragging = false;
   lastCell = null;
+  hidePreview();
   if (!state.gridLocked) setGridVisible(false);
 };
 
 export const initInput = () => {
+  previewPath.setAttribute('fill', 'none');
+  previewPath.setAttribute('stroke-width', 8);
+  previewPath.setAttribute('stroke-linecap', 'round');
+  previewPath.style.opacity = 0;
+  previewPath.style.transition = 'opacity .12s, stroke .12s';
+  previewPath.style.pointerEvents = 'none';
+  layers.marker.append(previewPath);
   layers.pointer.addEventListener('pointerdown', handlePointerDown);
   layers.pointer.addEventListener('pointermove', handlePointerMove);
   layers.pointer.addEventListener('pointerup', handlePointerUp);

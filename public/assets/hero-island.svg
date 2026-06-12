@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7feff"/>
+      <stop offset=".55" stop-color="#bfeaf2"/>
+      <stop offset="1" stop-color="#7fc6d8"/>
+    </linearGradient>
+    <linearGradient id="island" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9bd76f"/>
+      <stop offset="1" stop-color="#5d9e55"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="760" fill="url(#sky)"/>
+  <ellipse cx="290" cy="185" rx="190" ry="62" fill="#fff" opacity=".78"/>
+  <ellipse cx="870" cy="250" rx="230" ry="74" fill="#fff" opacity=".55"/>
+  <ellipse cx="680" cy="560" rx="430" ry="92" fill="#376a73" opacity=".18" filter="url(#soft)"/>
+  <path d="M190 498c96-148 298-226 498-196 174 26 298 140 344 252-84 70-244 106-428 94-190-12-348-62-414-150z" fill="#dfe9aa"/>
+  <path d="M218 470c98-126 286-194 474-168 162 22 274 126 320 222-83 58-232 88-398 78-170-11-326-54-396-132z" fill="url(#island)"/>
+  <path d="M330 452c94-56 254-78 384-48 94 22 158 70 190 128" fill="none" stroke="#b9eff8" stroke-width="28" stroke-linecap="round"/>
+  <path d="M332 452c94-56 254-78 384-48 94 22 158 70 190 128" fill="none" stroke="#4ba9c8" stroke-width="14" stroke-linecap="round"/>
+  <g fill="#fff7d2" stroke="#263941" stroke-width="5">
+    <rect x="672" y="316" width="92" height="62" rx="18"/>
+    <rect x="482" y="414" width="138" height="76" rx="18"/>
+    <rect x="768" y="468" width="112" height="88" rx="18"/>
+  </g>
+  <g fill="#80bd4f" opacity=".95">
+    <circle cx="524" cy="438" r="12"/>
+    <circle cx="558" cy="452" r="14"/>
+    <circle cx="590" cy="432" r="10"/>
+  </g>
+  <g fill="#ffffff" opacity=".92">
+    <ellipse cx="236" cy="354" rx="70" ry="26"/>
+    <ellipse cx="285" cy="346" rx="52" ry="32"/>
+    <ellipse cx="326" cy="360" rx="82" ry="28"/>
+  </g>
+  <circle cx="332" cy="452" r="38" fill="#2f90cf"/>
+  <circle cx="332" cy="452" r="20" fill="#baf6ff"/>
+  <path d="M336 440c20 8 20 28 0 36" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+</svg>

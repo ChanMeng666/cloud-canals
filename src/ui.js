@@ -3,6 +3,8 @@ import { createElement, createSvgElement } from './dom.js';
 import { setGridVisible } from './board.js';
 import { initAudio, sounds } from './audio.js';
 import { fields, state } from './state.js';
+import { getObjectiveSummary } from './progression.js';
+import { assets } from './assets.js';
 
 const shell = createElement();
 const menu = createElement();
@@ -12,6 +14,11 @@ const canalValue = createElement();
 const seasonValue = createElement();
 const waterValue = createElement();
 const waterFill = createElement();
+const objectiveLabel = createElement();
+const objectiveValue = createElement();
+const objectiveFill = createElement();
+const seasonFill = createElement();
+const bestValue = createElement();
 const warning = createElement();
 
 let pauseButton;
@@ -229,6 +236,63 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
     waterMetric,
   );
 
+  const objectivePanel = createElement();
+  objectivePanel.style.cssText = `
+    position:absolute;
+    top:88px;
+    left:16px;
+    width:min(380px, calc(100vw - 32px));
+    display:grid;
+    gap:9px;
+    padding:14px;
+    border-radius:22px;
+    background:#fffdf0d9;
+    backdrop-filter:var(--ui-blur);
+    box-shadow:0 18px 40px #24444b1c, 0 0 0 1px #24444b18;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .5s;
+  `;
+  const objectiveHeader = createElement();
+  objectiveHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:14px;';
+  objectiveLabel.style.cssText = 'font-size:14px;font-weight:950;';
+  objectiveValue.style.cssText = 'font-size:13px;font-weight:900;color:#52656a;';
+  objectiveHeader.append(objectiveLabel, objectiveValue);
+
+  const objectiveTrack = createElement();
+  objectiveTrack.style.cssText = `
+    height:9px;
+    overflow:hidden;
+    border-radius:999px;
+    background:#24444b16;
+  `;
+  objectiveFill.style.cssText = `
+    width:0;
+    height:100%;
+    border-radius:999px;
+    background:${colors.crop};
+    transition:width .25s, background .25s;
+  `;
+  objectiveTrack.append(objectiveFill);
+
+  const seasonTrack = createElement();
+  seasonTrack.style.cssText = `
+    height:4px;
+    overflow:hidden;
+    border-radius:999px;
+    background:#24444b12;
+  `;
+  seasonFill.style.cssText = `
+    width:0;
+    height:100%;
+    border-radius:999px;
+    background:${colors.field};
+    transition:width .25s;
+  `;
+  seasonTrack.append(seasonFill);
+  bestValue.style.cssText = 'font-size:12px;font-weight:850;color:#52656a;';
+  objectivePanel.append(objectiveHeader, objectiveTrack, seasonTrack, bestValue);
+
   const toolbar = createElement();
   toolbar.style.cssText = `
     position:absolute;
@@ -312,6 +376,20 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
     display:grid;
     gap:20px;
     max-width:520px;
+    position:relative;
+    z-index:1;
+  `;
+
+  const heroArt = createElement();
+  heroArt.style.cssText = `
+    position:absolute;
+    inset:auto 0 0 auto;
+    width:min(58vw, 760px);
+    aspect-ratio:1200/760;
+    background:url(${assets.heroIsland}) center/contain no-repeat;
+    opacity:.92;
+    pointer-events:none;
+    filter:drop-shadow(0 28px 34px #24444b2b);
   `;
 
   const eyebrow = createElement();
@@ -369,7 +447,7 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
 
   menuButtons.append(startButton, restartButton, fullscreenButton);
   menuContent.append(eyebrow, title, blurb, menuButtons);
-  menu.append(menuContent);
+  menu.append(heroArt, menuContent);
 
   const responsiveStyle = createElement('style');
   responsiveStyle.textContent = `
@@ -390,14 +468,22 @@ export const initUi = ({ startGame, restartGame, togglePause }) => {
         padding-top: 12vh !important;
         background: linear-gradient(180deg, #fffdf0f7 0 54%, #fffdf055 78%, #fffdf000 100%) !important;
       }
+      [data-ui-objective] {
+        top: 148px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+      }
     }
   `;
   document.head.append(responsiveStyle);
   stats.dataset.uiStats = 'true';
   toolbar.dataset.uiToolbar = 'true';
   menu.dataset.uiMenu = 'true';
+  objectivePanel.dataset.uiObjective = 'true';
 
-  shell.append(stats, toolbar, warning, menu);
+  shell.append(stats, objectivePanel, toolbar, warning, menu);
+  shell.objectivePanel = objectivePanel;
   updateUi();
 };
 
@@ -410,6 +496,7 @@ export const hideMenu = () => {
   menu.style.opacity = 0;
   menu.style.pointerEvents = 'none';
   stats.style.opacity = 1;
+  if (shell.objectivePanel) shell.objectivePanel.style.opacity = 1;
 };
 
 export const updateUi = (noCanals = false) => {
@@ -423,6 +510,14 @@ export const updateUi = (noCanals = false) => {
   waterValue.textContent = `${Math.round(averageWater)}%`;
   waterFill.style.width = `${averageWater}%`;
   waterFill.style.background = averageWater < 24 ? colors.warning : colors.canal;
+
+  const objective = getObjectiveSummary();
+  objectiveLabel.textContent = objective.completed ? `${objective.label} complete` : objective.label;
+  objectiveValue.textContent = objective.progressText;
+  objectiveFill.style.width = `${objective.progressRatio * 100}%`;
+  objectiveFill.style.background = objective.completed ? colors.crop : colors.canal;
+  seasonFill.style.width = `${objective.seasonRatio * 100}%`;
+  bestValue.textContent = `Reward: ${objective.reward ?? 'New goal soon'} | Best ${state.bestScore} harvests, season ${state.bestSeason}`;
 
   if (pauseButton) setButtonIcon(pauseButton, state.paused ? 'play' : 'pause', state.paused ? 'Resume' : 'Pause');
   if (gridButton) {
