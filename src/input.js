@@ -1,5 +1,6 @@
 import {
   cellCenter,
+  cellSize,
   eventToCell,
   isInsideBoard,
   layers,
@@ -25,6 +26,7 @@ let spacePanning = false;
 const activeTouches = new Map();
 let touchGesture = null;
 const previewPath = createSvgElement('path');
+const targetCell = createSvgElement('rect');
 
 const isNeighbor = (a, b) => (
   Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1
@@ -41,7 +43,24 @@ const setCursorForCell = (cell) => {
     layers.pointer.style.cursor = 'grab';
     return;
   }
-  layers.pointer.style.cursor = canBuildCell(cell) ? 'cell' : 'not-allowed';
+  layers.pointer.style.cursor = canBuildCell(cell) ? 'crosshair' : 'not-allowed';
+};
+
+const ensureTargetCell = () => {
+  if (!targetCell.parentNode) layers.marker.append(targetCell);
+};
+
+const updateTargetCell = (cell) => {
+  ensureTargetCell();
+  if (!isInsideBoard(cell)) {
+    targetCell.style.opacity = 0;
+    return;
+  }
+  targetCell.setAttribute('x', cell.x * cellSize + 2);
+  targetCell.setAttribute('y', cell.y * cellSize + 2);
+  targetCell.setAttribute('fill', canBuildCell(cell) ? '#ffffff4f' : '#f06b4f33');
+  targetCell.setAttribute('stroke', canBuildCell(cell) ? '#2f96baaa' : '#f06b4faa');
+  targetCell.style.opacity = 1;
 };
 
 const hidePreview = () => {
@@ -190,12 +209,14 @@ const handlePointerMove = (event) => {
     event.preventDefault();
     panCameraByScreenDelta(event.clientX - panStart.x, event.clientY - panStart.y);
     panStart = { x: event.clientX, y: event.clientY };
+    targetCell.style.opacity = 0;
     return;
   }
   if (state.paused) return;
 
   const cell = eventToCell(event);
   setCursorForCell(cell);
+  updateTargetCell(cell);
 
   if (event.buttons === 2 || (event.buttons === 1 && state.deleteMode)) {
     setGridVisible(true);
@@ -226,6 +247,7 @@ const handlePointerUp = (event) => {
   dragging = false;
   lastCell = null;
   hidePreview();
+  targetCell.style.opacity = 0;
   if (!state.gridLocked) setGridVisible(false);
   const cell = eventToCell(event);
   setCursorForCell(cell);
@@ -248,7 +270,7 @@ const handleKeyDown = (event) => {
 const handleKeyUp = (event) => {
   if (event.code !== 'Space') return;
   spacePanning = false;
-  if (!panning) layers.pointer.style.cursor = 'cell';
+  if (!panning) layers.pointer.style.cursor = 'crosshair';
 };
 
 export const initInput = () => {
@@ -258,6 +280,14 @@ export const initInput = () => {
   previewPath.style.opacity = 0;
   previewPath.style.transition = 'opacity .12s, stroke .12s';
   previewPath.style.pointerEvents = 'none';
+  targetCell.setAttribute('width', 14);
+  targetCell.setAttribute('height', 14);
+  targetCell.setAttribute('rx', 4);
+  targetCell.setAttribute('stroke-width', 1.6);
+  targetCell.style.opacity = 0;
+  targetCell.style.transition = 'opacity .1s, fill .1s, stroke .1s';
+  targetCell.style.pointerEvents = 'none';
+  layers.marker.append(targetCell);
   layers.marker.append(previewPath);
   layers.pointer.addEventListener('pointerdown', handlePointerDown);
   layers.pointer.addEventListener('pointermove', handlePointerMove);

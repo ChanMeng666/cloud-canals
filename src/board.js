@@ -33,6 +33,8 @@ export const camera = {
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+const viewportRect = () => svg.getBoundingClientRect();
+
 export const getCameraViewBox = () => ({
   x: camera.x,
   y: camera.y,
@@ -69,7 +71,7 @@ export const resetCamera = () => {
 };
 
 export const panCameraByScreenDelta = (dx, dy) => {
-  const rect = layers.pointer.getBoundingClientRect();
+  const rect = viewportRect();
   if (!rect.width || !rect.height) return;
   const viewBox = getCameraViewBox();
   camera.x -= dx * (viewBox.width / rect.width);
@@ -78,7 +80,7 @@ export const panCameraByScreenDelta = (dx, dy) => {
 };
 
 export const zoomCameraAt = (clientX, clientY, factor) => {
-  const rect = layers.pointer.getBoundingClientRect();
+  const rect = viewportRect();
   if (!rect.width || !rect.height) return;
 
   const before = getCameraViewBox();
@@ -204,7 +206,7 @@ export const initBoard = () => {
   layers.pointer.setAttribute('width', svgWidth);
   layers.pointer.setAttribute('height', svgHeight);
   layers.pointer.setAttribute('fill', 'transparent');
-  layers.pointer.style.cursor = 'cell';
+  layers.pointer.style.cursor = 'crosshair';
   layers.pointer.style.pointerEvents = 'all';
 
   svg.append(
@@ -242,7 +244,7 @@ export const isInsideBoard = ({ x, y }) => (
 );
 
 export const eventToCell = (event) => {
-  const rect = layers.pointer.getBoundingClientRect();
+  const rect = viewportRect();
   const viewBox = getCameraViewBox();
 
   return {
