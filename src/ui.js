@@ -23,7 +23,9 @@ const warning = createElement();
 
 let pauseButton;
 let viewButton;
+let panButton;
 let gridButton;
+let hudButton;
 let deleteButton;
 let soundButton;
 let lastToastTimeout;
@@ -35,6 +37,8 @@ const iconPaths = {
   play: ['M7 5l8 5-8 5z'],
   grid: ['M5 4v12M11 4v12M4 7h12M4 13h12'],
   view: ['M11 5v12M5 11h12', 'M7 7l4-3 4 3M7 15l4 3 4-3'],
+  pan: ['M7 12V6a2 2 0 0 1 4 0v5', 'M11 11V5a2 2 0 0 1 4 0v8', 'M15 12v-2a2 2 0 0 1 4 0v3q0 5-5 5H9q-4 0-5-4l-1-4a2 2 0 0 1 4-1l1 3'],
+  hud: ['M5 5h12v12H5z', 'M8 8h6M8 11h4M8 14h7'],
   delete: ['M6 6l8 8M14 6l-8 8', 'M5 4h10M8 4l1-2h2l1 2M6 7v9h8V7'],
   sound: ['M4 10h3l4-4v12l-4-4H4z', 'M14 8q2 2 0 4'],
   mute: ['M4 10h3l4-4v12l-4-4H4z', 'M15 8l4 4M19 8l-4 4'],
@@ -333,6 +337,15 @@ export const initUi = ({
     showToast('View centered');
   });
 
+  panButton = makeToolButton('Pan map', 'pan', () => {
+    initAudio();
+    state.panMode = !state.panMode;
+    if (state.panMode) state.deleteMode = false;
+    sounds.toggle();
+    updateUi();
+    showToast(state.panMode ? 'Pan mode on' : 'Pan mode off');
+  });
+
   gridButton = makeToolButton('Grid', 'grid', () => {
     initAudio();
     state.gridLocked = !state.gridLocked;
@@ -342,9 +355,19 @@ export const initUi = ({
     updateUi();
   });
 
+  hudButton = makeToolButton('Compact HUD', 'hud', () => {
+    initAudio();
+    state.hudCompact = !state.hudCompact;
+    localStorage.setItem('CloudCanalsHudCompact', state.hudCompact);
+    sounds.toggle();
+    updateUi();
+    showToast(state.hudCompact ? 'HUD compact' : 'HUD expanded');
+  });
+
   deleteButton = makeToolButton('Remove canals', 'delete', () => {
     initAudio();
     state.deleteMode = !state.deleteMode;
+    if (state.deleteMode) state.panMode = false;
     sounds.toggle();
     updateUi();
   });
@@ -357,7 +380,7 @@ export const initUi = ({
     updateUi();
   });
 
-  toolbar.append(pauseButton, viewButton, gridButton, deleteButton, soundButton);
+  toolbar.append(pauseButton, viewButton, panButton, gridButton, hudButton, deleteButton, soundButton);
 
   warning.style.cssText = `
     position:absolute;
@@ -513,15 +536,16 @@ export const initUi = ({
 export const showMenu = () => {
   menu.style.opacity = 1;
   menu.style.pointerEvents = 'auto';
+  stats.style.opacity = 0;
+  if (shell.objectivePanel) shell.objectivePanel.style.opacity = 0;
   if (shell.toolbar) shell.toolbar.style.opacity = 0;
 };
 
 export const hideMenu = () => {
   menu.style.opacity = 0;
   menu.style.pointerEvents = 'none';
-  stats.style.opacity = 1;
-  if (shell.objectivePanel) shell.objectivePanel.style.opacity = 1;
   if (shell.toolbar) shell.toolbar.style.opacity = 1;
+  updateUi();
 };
 
 export const updateUi = (noCanals = false) => {
@@ -546,8 +570,23 @@ export const updateUi = (noCanals = false) => {
 
   if (pauseButton) setButtonIcon(pauseButton, state.paused ? 'play' : 'pause', state.paused ? 'Resume' : 'Pause');
   if (viewButton) viewButton.style.background = '#fffdf0e8';
+  if (panButton) {
+    panButton.style.background = state.panMode ? '#e7f7fb' : '#fffdf0e8';
+    panButton.style.color = state.panMode ? colors.spring : colors.text;
+  }
   if (gridButton) {
     gridButton.style.background = state.gridLocked ? '#e7f7fb' : '#fffdf0e8';
+  }
+  stats.style.opacity = state.running ? (state.hudCompact ? 0.46 : 1) : 0;
+  stats.style.transform = state.hudCompact ? 'scale(.82)' : 'scale(1)';
+  stats.style.transformOrigin = 'top left';
+  if (shell.objectivePanel) {
+    shell.objectivePanel.style.opacity = state.running && !state.hudCompact ? 1 : 0;
+    shell.objectivePanel.style.translate = state.hudCompact ? '-12px -8px' : '0 0';
+  }
+  if (hudButton) {
+    hudButton.style.background = state.hudCompact ? '#e7f7fb' : '#fffdf0e8';
+    hudButton.style.color = state.hudCompact ? colors.spring : colors.text;
   }
   if (deleteButton) {
     deleteButton.style.background = state.deleteMode ? '#ffe1d9' : '#fffdf0e8';

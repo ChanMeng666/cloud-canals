@@ -1,12 +1,14 @@
-export const maxCanalStock = 120;
+export const maxCanalStock = 180;
 
 export const state = {
   running: false,
   paused: false,
   tick: 0,
   score: 0,
-  canalStock: 34,
+  canalStock: 48,
   deleteMode: false,
+  panMode: false,
+  hudCompact: localStorage.getItem('CloudCanalsHudCompact') === 'true',
   gridLocked: localStorage.getItem('CloudCanalsGrid') === 'true',
   soundOn: localStorage.getItem('CloudCanalsSound') !== 'false',
   nextSpawnTick: 1200,
@@ -32,8 +34,9 @@ export const resetState = () => {
   state.paused = false;
   state.tick = 0;
   state.score = 0;
-  state.canalStock = 34;
+  state.canalStock = 48;
   state.deleteMode = false;
+  state.panMode = false;
   state.nextSpawnTick = 1200;
   state.season = 1;
   state.seasonTick = 0;

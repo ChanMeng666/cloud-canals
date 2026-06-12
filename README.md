@@ -7,24 +7,28 @@ Build canal networks from cloud springs to thirsty fields, keep the island hydra
 ## How to play
 
 - Drag from one grid cell to the next to build canals.
+- Right-drag to pan the map without changing canals.
+- Use Pan map mode from the toolbar to drag the view with the primary pointer.
 - Use the mouse wheel to zoom the island view.
 - Hold Space or Shift and drag to pan the map.
 - On touch screens, use two fingers to pan and pinch zoom.
 - Use the reset-view button to return to the starting area.
+- Use Compact HUD mode when the panels cover an area you want to inspect.
 - Connect a cloud spring to each field connector so crops can grow.
 - Watch the water meter on each field and the overall water meter in the HUD.
 - Complete each seasonal objective for extra canal pieces, moisture boosts, or score bonuses.
 - Build reservoirs into the network to store water and keep canals flowing longer.
-- Right click, or use delete mode, to remove canals and recover canal pieces.
+- Use remove mode to remove canals and recover canal pieces.
 - New fields and reservoirs appear over time and grant more canal pieces.
 - Mist banks temporarily block cells before dissipating. Rocks are permanent obstacles.
 
 ## Features
 
-- Drag to build canal segments on a larger pan-and-zoom island map.
+- Drag to build canal segments on a much larger pan-and-zoom island map.
 - Connect springs to fields so crops can grow and harvest automatically.
 - Use reservoirs to store water and stabilize disconnected canal networks.
-- Remove canals with right click or delete mode.
+- Remove canals with the dedicated remove mode.
+- Right-drag map panning, toolbar pan mode, reset-view control, and compact HUD mode.
 - Procedural placement keeps new stations reachable from the water network and avoids sealing critical connectors.
 - Decorative drifting clouds add motion without blocking canal placement.
 - Playable with mouse or touch, with generated SVG visuals and synthesized Web Audio sounds.

@@ -39,7 +39,7 @@ const setCursorForCell = (cell) => {
     layers.pointer.style.cursor = 'grabbing';
     return;
   }
-  if (spacePanning) {
+  if (spacePanning || state.panMode) {
     layers.pointer.style.cursor = 'grab';
     return;
   }
@@ -167,7 +167,7 @@ const handlePointerDown = (event) => {
   }
   const cell = eventToCell(event);
 
-  if (event.button === 1 || event.shiftKey || spacePanning) {
+  if (event.button === 1 || event.button === 2 || event.shiftKey || spacePanning || state.panMode) {
     panning = true;
     panStart = { x: event.clientX, y: event.clientY };
     dragging = false;
@@ -181,7 +181,7 @@ const handlePointerDown = (event) => {
   if (state.paused) return;
   setCursorForCell(cell);
 
-  if (event.button === 2 || state.deleteMode) {
+  if (state.deleteMode) {
     setGridVisible(true);
     hidePreview();
     deleteAt(cell);
@@ -218,7 +218,7 @@ const handlePointerMove = (event) => {
   setCursorForCell(cell);
   updateTargetCell(cell);
 
-  if (event.buttons === 2 || (event.buttons === 1 && state.deleteMode)) {
+  if (event.buttons === 1 && state.deleteMode) {
     setGridVisible(true);
     deleteAt(cell);
     return;

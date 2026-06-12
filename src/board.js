@@ -3,10 +3,11 @@ import { colors } from './colors.js';
 import { addSvgImage, assets } from './assets.js';
 
 export const cellSize = 18;
-export const boardWidth = 44;
-export const boardHeight = 26;
+export const boardWidth = 96;
+export const boardHeight = 64;
 export const svgWidth = boardWidth * cellSize;
 export const svgHeight = boardHeight * cellSize;
+export const canvasPadding = 1400;
 
 export const stage = createElement();
 export const svg = createSvgElement();
@@ -26,9 +27,9 @@ export const layers = {
 export const camera = {
   x: 0,
   y: 0,
-  zoom: 1.22,
-  minZoom: 1,
-  maxZoom: 2.45,
+  zoom: 2,
+  minZoom: 0.72,
+  maxZoom: 3.2,
 };
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -46,12 +47,8 @@ export const applyCamera = () => {
   const width = svgWidth / camera.zoom;
   const height = svgHeight / camera.zoom;
 
-  camera.x = width >= svgWidth
-    ? (svgWidth - width) / 2
-    : clamp(camera.x, 0, svgWidth - width);
-  camera.y = height >= svgHeight
-    ? (svgHeight - height) / 2
-    : clamp(camera.y, 0, svgHeight - height);
+  camera.x = clamp(camera.x, -canvasPadding, svgWidth - width + canvasPadding);
+  camera.y = clamp(camera.y, -canvasPadding, svgHeight - height + canvasPadding);
 
   svg.setAttribute('viewBox', `${camera.x} ${camera.y} ${width} ${height}`);
 };
@@ -67,7 +64,7 @@ export const focusCell = (cell, zoom = camera.zoom) => {
 };
 
 export const resetCamera = () => {
-  focusCell({ x: 7, y: 12 }, 1.22);
+  focusCell({ x: 10, y: 14 }, 2);
 };
 
 export const panCameraByScreenDelta = (dx, dy) => {
@@ -194,8 +191,10 @@ export const initBoard = () => {
     opacity: 0.85,
   });
 
-  layers.grid.setAttribute('width', svgWidth);
-  layers.grid.setAttribute('height', svgHeight);
+  layers.grid.setAttribute('x', -canvasPadding);
+  layers.grid.setAttribute('y', -canvasPadding);
+  layers.grid.setAttribute('width', svgWidth + canvasPadding * 2);
+  layers.grid.setAttribute('height', svgHeight + canvasPadding * 2);
   layers.grid.setAttribute('fill', 'url(#grid)');
   layers.grid.style.opacity = 0;
   layers.grid.style.transition = 'opacity .2s';
@@ -203,8 +202,10 @@ export const initBoard = () => {
   layers.shadow.setAttribute('stroke-linecap', 'round');
   layers.canal.setAttribute('stroke-linecap', 'round');
   layers.water.setAttribute('stroke-linecap', 'round');
-  layers.pointer.setAttribute('width', svgWidth);
-  layers.pointer.setAttribute('height', svgHeight);
+  layers.pointer.setAttribute('x', -canvasPadding);
+  layers.pointer.setAttribute('y', -canvasPadding);
+  layers.pointer.setAttribute('width', svgWidth + canvasPadding * 2);
+  layers.pointer.setAttribute('height', svgHeight + canvasPadding * 2);
   layers.pointer.setAttribute('fill', 'transparent');
   layers.pointer.style.cursor = 'crosshair';
   layers.pointer.style.pointerEvents = 'all';
