@@ -1,0 +1,23 @@
+{
+  "name": "cloud-canals",
+  "version": "1.0.0",
+  "description": "A small SVG browser game about routing water across floating islands.",
+  "type": "module",
+  "keywords": [
+    "browser-game",
+    "svg",
+    "javascript",
+    "vite",
+    "water-routing",
+    "puzzle-game"
+  ],
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^8.0.16"
+  }
+}
